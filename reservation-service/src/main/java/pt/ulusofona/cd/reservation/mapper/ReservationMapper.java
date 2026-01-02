@@ -15,6 +15,7 @@ public class ReservationMapper
     {
         Reservation reservation = new Reservation();
         reservation.setRestaurantId(dto.getRestaurantId());
+        reservation.setAvailabilitySlotId(dto.getAvailabilitySlotId());
         reservation.setCustomerName(dto.getCustomerName());
         reservation.setCustomerEmail(dto.getCustomerEmail());
         reservation.setCustomerPhone(dto.getCustomerPhone());
@@ -30,25 +31,7 @@ public class ReservationMapper
         ReservationResponse response = new ReservationResponse();
         response.setId(entity.getId());
         response.setRestaurantId(entity.getRestaurantId());
-        response.setCustomerName(entity.getCustomerName());
-        response.setCustomerEmail(entity.getCustomerEmail());
-        response.setCustomerPhone(entity.getCustomerPhone());
-        response.setPartySize(entity.getPartySize());
-        response.setStatus(entity.getStatus());
-        response.setScheduledAt(entity.getScheduledAt());
-        response.setCreatedAt(entity.getCreatedAt());
-        response.setUpdatedAt(entity.getUpdatedAt());
-        response.setConfirmedAt(entity.getConfirmedAt());
-        response.setCancelledAt(entity.getCancelledAt());
-
-        return response;
-    }
-
-    public  static ReservationResponse toResponseStatic(Reservation entity)
-    {
-        ReservationResponse response = new ReservationResponse();
-        response.setId(entity.getId());
-        response.setRestaurantId(entity.getRestaurantId());
+        response.setAvailabilitySlotId(entity.getAvailabilitySlotId());
         response.setCustomerName(entity.getCustomerName());
         response.setCustomerEmail(entity.getCustomerEmail());
         response.setCustomerPhone(entity.getCustomerPhone());

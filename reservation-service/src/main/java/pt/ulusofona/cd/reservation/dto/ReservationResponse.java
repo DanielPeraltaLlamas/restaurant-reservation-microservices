@@ -13,13 +13,14 @@ public class ReservationResponse
 {
     private Long id;
     private Long restaurantId;
+    private Long availabilitySlotId;
     private String customerName;
     private String customerEmail;
     private String customerPhone;
     private Integer partySize;
     private String status;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
-    private Instant scheduledAt;
+    private LocalDateTime scheduledAt;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
     private Instant createdAt;

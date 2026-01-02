@@ -1,10 +1,10 @@
 package pt.ulusofona.cd.reservation.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pt.ulusofona.cd.reservation.client.RestaurantAvailabilityClient;
+import pt.ulusofona.cd.reservation.client.RestaurantCapacityClient;
 import pt.ulusofona.cd.reservation.client.RestaurantClient;
 import pt.ulusofona.cd.reservation.dto.*;
 import pt.ulusofona.cd.reservation.events.ReservationEventProducer;
@@ -13,12 +13,8 @@ import pt.ulusofona.cd.reservation.mapper.ReservationMapper;
 import pt.ulusofona.cd.reservation.model.Reservation;
 import pt.ulusofona.cd.reservation.repository.ReservationRepository;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -28,6 +24,8 @@ public class ReservationService
 {
 
     private final ReservationRepository reservationRepository;
+    private final RestaurantAvailabilityClient restaurantAvailabilityClient;
+    private final RestaurantCapacityClient restaurantCapacityClient;
     private final RestaurantClient restaurantClient;
     private final ReservationEventProducer reservationEventProducer;
 
@@ -38,7 +36,7 @@ public class ReservationService
     {
 
         Instant now = Instant.now();
-        if (request.getScheduledAt().isBefore(now))
+        if (request.getScheduledAt().isBefore(LocalDateTime.now()))
         {
             throw new IllegalArgumentException("scheduledAt must be in the future");
         }
@@ -48,6 +46,23 @@ public class ReservationService
             throw new IllegalArgumentException("partySize must be greater than zero");
         }
 
+        //Check if restaurant exists
+        try {
+            restaurantClient.getRestaurant(request.getRestaurantId());
+        } catch (Exception e) {
+            throw new RestaurantNotFoundException(request.getRestaurantId());
+        }
+
+        //Check if slot is available
+        boolean available = false;
+        List<AvailabilitySlotDto> availableSlots = restaurantAvailabilityClient.getAvailability(request.getRestaurantId(), request.getScheduledAt(), request.getPartySize());
+        for (AvailabilitySlotDto slot:availableSlots)
+        {
+            //Slot found
+            if(slot.getId().equals(request.getAvailabilitySlotId()))    available = true;
+        }
+
+        if(!available)  throw new IllegalArgumentException("Availability slot is not valid.");
 
         Reservation reservation = ReservationMapper.toEntity(request);
         reservation = reservationRepository.save(reservation);
@@ -61,6 +76,7 @@ public class ReservationService
         ReservationCreatedEvent event = new ReservationCreatedEvent(
                 reservation.getId().toString(),
                 reservation.getRestaurantId(),
+                reservation.getAvailabilitySlotId(),
                 reservation.getCustomerName(),
                 reservation.getCustomerEmail(),
                 reservation.getCustomerPhone(),
@@ -96,6 +112,7 @@ public class ReservationService
     {
 
         try {
+
             restaurantClient.getRestaurant(restaurantId);
         } catch (Exception e) {
             throw new RestaurantNotFoundException(restaurantId);
@@ -154,7 +171,7 @@ public class ReservationService
 
 
         if (request.getScheduledAt() != null &&
-                request.getScheduledAt().isBefore(Instant.now())) {
+                request.getScheduledAt().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("scheduledAt must be in the future");
         }
 
@@ -229,7 +246,7 @@ public class ReservationService
         }
 
         
-        updateRestaurantAvailability(reservation,false);
+        restaurantCapacityClient.confirmSeats(reservation.getRestaurantId(), new SeatsRequest(reservation.getAvailabilitySlotId(), reservation.getPartySize()));
 
         reservation.setStatus("CONFIRMED");
         reservation.setConfirmedAt(Instant.now());
@@ -240,6 +257,7 @@ public class ReservationService
         ReservationConfirmedEvent event = new ReservationConfirmedEvent(
                 reservation.getId().toString(),
                 reservation.getRestaurantId(),
+                reservation.getAvailabilitySlotId(),
                 reservation.getCustomerEmail(),
                 reservation.getScheduledAt(),
                 reservation.getConfirmedAt()
@@ -274,13 +292,14 @@ public class ReservationService
 
         if ("CONFIRMED".equals(previousStatus))
         {
-
-            updateRestaurantAvailability(reservation,true);
+            //Seats are available again
+            restaurantCapacityClient.releaseSeats(reservation.getRestaurantId(), new SeatsRequest(reservation.getAvailabilitySlotId(), reservation.getPartySize()));
         }
 
         ReservationCancelledEvent event = new ReservationCancelledEvent(
                 reservation.getId().toString(),
                 reservation.getRestaurantId(),
+                reservation.getAvailabilitySlotId(),
                 reservation.getCustomerEmail(),
                 previousStatus,
                 "Customer cancellation",
@@ -293,56 +312,6 @@ public class ReservationService
         return ReservationMapper.toResponse(reservation);
     }
 
-
-
-    private void updateRestaurantAvailability(Reservation reservation, boolean isCancellation)
-    {
-
-        List<AvailabilitySlotResponse> allSlots = restaurantClient.getAllSlots();
-
-        LocalDate reservationDate = reservation.getScheduledAt()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
-
-        Optional<AvailabilitySlotResponse> matchingSlot = allSlots.stream()
-                .filter(slot -> slot.getRestaurantId().equals(reservation.getRestaurantId()))
-                .filter(slot -> slot.getDate().equals(reservationDate))
-                .findFirst();
-
-        if (matchingSlot.isPresent()) {
-            AvailabilitySlotResponse slot = matchingSlot.get();
-
-
-            int newSeatsAvailable;
-
-            if (isCancellation) {
-
-                newSeatsAvailable = slot.getSeatsAvailable() + reservation.getPartySize();
-
-
-
-                if (newSeatsAvailable > slot.getCapacity()) {
-                    newSeatsAvailable = slot.getCapacity();
-                }
-            } else {
-
-                newSeatsAvailable = slot.getSeatsAvailable() - reservation.getPartySize();
-
-            }
-
-            AvailabilitySlotRequest updateRequest = new AvailabilitySlotRequest();
-            updateRequest.setRestaurantId(slot.getRestaurantId());
-            updateRequest.setDate(slot.getDate());
-            updateRequest.setStartTime(slot.getStartTime());
-            updateRequest.setEndTime(slot.getEndTime());
-            updateRequest.setCapacity(slot.getCapacity());
-            updateRequest.setSeatsAvailable(newSeatsAvailable);
-
-
-            restaurantClient.updateAvailabilitySlot(slot.getId(), updateRequest);
-
-        }
-    }
 
 }
 

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
@@ -26,6 +27,9 @@ public class Reservation
     @Column(name = "restaurant_id", nullable = false, columnDefinition = "BIGINT")
     private Long restaurantId;
 
+    @Column(name = "availability_slot_id", nullable = false, columnDefinition = "BIGINT")
+    private Long availabilitySlotId;
+
     @Column(name = "customer_name", nullable = false, length = 100)
     private String customerName;
 
@@ -42,7 +46,7 @@ public class Reservation
     private String status = "PENDING";
 
     @Column(name = "scheduled_at", nullable = false)
-    private Instant scheduledAt;
+    private LocalDateTime scheduledAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

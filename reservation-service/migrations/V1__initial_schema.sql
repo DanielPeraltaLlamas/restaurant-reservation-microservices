@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS reservations
 (
        id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
        restaurant_id BIGINT NOT NULL,
+       availability_slot_id BIGINT NOT NULL,
        customer_name VARCHAR(100) NOT NULL,
        customer_email VARCHAR(100) NOT NULL,
        customer_phone VARCHAR(20),
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS reservations
 );
 
 CREATE INDEX idx_reservations_restaurant_id ON reservations(restaurant_id);
+CREATE INDEX idx_reservations_availability_slot_id ON reservations(availability_slot_id);
 CREATE INDEX idx_reservations_customer_email ON reservations(customer_email);
 CREATE INDEX idx_reservations_scheduled_at ON reservations(scheduled_at);
 CREATE INDEX idx_reservations_status ON reservations(status);

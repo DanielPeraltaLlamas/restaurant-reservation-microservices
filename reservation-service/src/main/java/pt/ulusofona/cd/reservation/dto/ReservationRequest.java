@@ -15,6 +15,9 @@ public class ReservationRequest
     @NotNull(message = "Restaurant ID is required")
     private Long restaurantId;
 
+    @NotNull(message = "Availability Slot ID is required")
+    private Long availabilitySlotId;
+
     @NotBlank(message = "Customer name is required")
     @Size(max = 100, message = "Customer name must be less than 100 characters")
     private String customerName;
@@ -36,7 +39,7 @@ public class ReservationRequest
 
     @NotNull(message = "Scheduled date and time is required")
     @Future(message = "Scheduled time must be in the future")
-    private Instant scheduledAt;
+    private LocalDateTime scheduledAt;
 
 
 }
