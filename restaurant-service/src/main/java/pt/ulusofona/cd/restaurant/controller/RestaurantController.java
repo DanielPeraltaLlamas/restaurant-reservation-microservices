@@ -3,6 +3,7 @@ package pt.ulusofona.cd.restaurant.controller;
 import lombok.RequiredArgsConstructor;
 
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import pt.ulusofona.cd.restaurant.dto.*;
@@ -15,6 +16,7 @@ import pt.ulusofona.cd.restaurant.model.Restaurant;
 import pt.ulusofona.cd.restaurant.service.RestaurantService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 
@@ -34,6 +36,13 @@ public class RestaurantController
                 .body(RestaurantMapper.toResponse(created));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<RestaurantResponse>  getRestaurant(@PathVariable Long id)
+    {
+        Restaurant restaurant = service.getRestaurantById(id);
+        return ResponseEntity.ok(RestaurantMapper.toResponse(restaurant));
+    }
+
     //Get all restaurants and menus
     @GetMapping("/menus")
     public ResponseEntity<List<RestaurantMenuResponse>>  getRestaurantMenus()
@@ -45,13 +54,38 @@ public class RestaurantController
 
     //Get all available slots for a restaurant at a given date and time
     @GetMapping("/slots/available")
-    public ResponseEntity<List<AvailabilitySlotResponse>>  getRestaurantMenus(@RequestParam Long restaurantId, @RequestParam LocalDate date, @RequestParam LocalTime time)
+    public ResponseEntity<List<AvailabilitySlotResponse>>  getAvailableSlots(@RequestParam Long restaurantId, @RequestParam LocalDate date, @RequestParam LocalTime time)
     {
         List<AvailabilitySlot> slots = service.getAvailableSlots(restaurantId, date, time);
         List<AvailabilitySlotResponse> responseList = slots.stream()
                 .map(AvailabilitySlotMapper::toResponse)
                 .toList();
         return ResponseEntity.ok(responseList);
+    }
+
+    //Get all available slots for a restaurant given date and party size
+    @GetMapping("/{id}/availability")
+    public ResponseEntity<List<AvailabilitySlotResponse>>  getAvailability(@PathVariable Long id, @RequestParam @DateTimeFormat(pattern = "d/M/yy, HH:mm") LocalDateTime dateTime, @RequestParam int partySize)
+    {
+        List<AvailabilitySlot> slots = service.getAvailability(id, dateTime, partySize);
+        List<AvailabilitySlotResponse> responseList = slots.stream()
+                .map(AvailabilitySlotMapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(responseList);
+    }
+
+    //Confirm seats for reservation
+    @PostMapping("/{id}/availability/confirm")
+    public void confirmSeats(@PathVariable Long id, @RequestBody SeatsRequest request)
+    {
+        service.confirmSeats(id, request);
+    }
+
+    //Release seats when reservation is cancelled
+    @PostMapping("/{id}/availability/release")
+    public void releaseSeats(@PathVariable Long id, @RequestBody SeatsRequest request)
+    {
+        service.releaseSeats(id, request);
     }
 
     //Create menu item
@@ -62,6 +96,8 @@ public class RestaurantController
                 .status(HttpStatus.CREATED)
                 .body(MenuItemMapper.toResponse(created));
     }
+
+
 
 
     //Get all menu items

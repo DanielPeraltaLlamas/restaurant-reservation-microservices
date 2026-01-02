@@ -19,11 +19,10 @@ import pt.ulusofona.cd.restaurant.exception.ItemNotFoundException;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -110,6 +109,53 @@ public class RestaurantService
         }
 
         return slots;
+    }
+
+    //Get availability with number of seats
+    @Transactional
+    public List<AvailabilitySlot> getAvailability(Long restaurantId, LocalDateTime dateTime, int partySize)
+    {
+        List<AvailabilitySlot> possibleSlots = this.getAvailableSlots(restaurantId, dateTime.toLocalDate(), dateTime.toLocalTime());
+        List<AvailabilitySlot> slots = new ArrayList<AvailabilitySlot>();
+        for(AvailabilitySlot slot:possibleSlots)
+        {
+            //If slot has enough seats, add it to the list
+            if(slot.getSeatsAvailable() >= partySize)
+            {
+                slots.add(slot);
+            }
+        }
+
+        return slots;
+    }
+
+    @Transactional
+    public void releaseSeats(Long id, SeatsRequest request)
+    {
+        AvailabilitySlot slot = this.getAvailabilitySlotById(request.getSlotId());
+        if(!id.equals(slot.getRestaurantId()))
+        {
+            throw new IllegalArgumentException("Restaurant ID provided does not match availability slot.");
+        }
+
+        slot.setSeatsAvailable(slot.getSeatsAvailable() + request.getPartySize());
+    }
+
+    @Transactional
+    public void confirmSeats(Long id, SeatsRequest request)
+    {
+        AvailabilitySlot slot = this.getAvailabilitySlotById(request.getSlotId());
+        if(!id.equals(slot.getRestaurantId()))
+        {
+            throw new IllegalArgumentException("Restaurant ID provided does not match availability slot.");
+        }
+
+        else if(slot.getSeatsAvailable() < request.getPartySize())
+        {
+            throw new IllegalArgumentException("Not enough seats available");
+        }
+
+        slot.setSeatsAvailable(slot.getSeatsAvailable() - request.getPartySize());
     }
 
 
@@ -205,5 +251,6 @@ public class RestaurantService
     {
         return availabilitySlotRepository.findById(id).orElseThrow(() ->new AvailabilitySlotNotFoundException("Slot with id " + id + " not found."));
     }
+
 
 }
