@@ -1,5 +1,6 @@
 package pt.ulusofona.cd.reservation.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,5 +21,6 @@ public class ReservationCreatedEvent
     private String customerPhone;
     private Integer partySize;
     private LocalDateTime scheduledAt;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant createdAt;
 }

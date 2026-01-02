@@ -19,18 +19,17 @@ public class ReservationResponse
     private String customerPhone;
     private Integer partySize;
     private String status;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
     private LocalDateTime scheduledAt;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant createdAt;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant updatedAt;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant confirmedAt;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant cancelledAt;
 }

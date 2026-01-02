@@ -30,7 +30,6 @@ public class ReservationService
     private final ReservationEventProducer reservationEventProducer;
 
 
-
     @Transactional
     public ReservationResponse createReservation(ReservationRequest request)
     {
