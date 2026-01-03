@@ -32,7 +32,7 @@ public class RatingService {
     @Transactional
     public RatingResponse createRating(RatingRequest request) {
 
-        /*
+        
         try {
             ResponseEntity<RestaurantResponse> response = restaurantClient.getRestaurant(request.getRestaurantId());
             if (!response.getStatusCode().is2xxSuccessful()) {
@@ -50,7 +50,7 @@ public class RatingService {
                             " has already rated restaurant " + request.getRestaurantId()
             );
         }
-        */
+        
         Rating rating = ratingMapper.toEntity(request);
         Rating savedRating = ratingRepository.save(rating);
 
