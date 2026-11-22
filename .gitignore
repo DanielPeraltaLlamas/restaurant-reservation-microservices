@@ -1,0 +1,10 @@
+# Secretos locales (usa .env.example como plantilla)
+.env
+
+# Compilación
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
